@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'cliente_screen.dart'; // Tela de cadastro/edição de clientes
+import 'package:rooster/screens/produto_screens/ProdutoListScreen.dart';
+import 'cliente_screens/ClienteListScreen.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard'),
+        title: Text('Oficina da Moda'),
         centerTitle: true,
       ),
       body: Padding(
@@ -19,7 +20,7 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ClienteScreen()),
+                  MaterialPageRoute(builder: (context) => ClienteListScreen()),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -27,6 +28,20 @@ class HomeScreen extends StatelessWidget {
                 textStyle: TextStyle(fontSize: 20),
               ),
               child: Text('Cadastro de Clientes'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProdutoListScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                textStyle: TextStyle(fontSize: 20),
+              ),
+              child: Text('Cadastro de Produtos'),
             ),
             SizedBox(height: 20),
             // Adicionar mais botões se necessário (ex: Relatórios, Configurações)

@@ -3,6 +3,10 @@ import 'screens/home_screen.dart';
 
 void main() {
   runApp(MyApp());
+  /*runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: ClienteListScreen(),
+  ));*/
 }
 
 class MyApp extends StatelessWidget {

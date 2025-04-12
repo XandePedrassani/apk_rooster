@@ -2,33 +2,35 @@ class Cliente {
   final int? id;
   final String nome;
   final String contato;
-  final DateTime dataNascimento;
+  final DateTime? dataNascimento;
   final DateTime dataCadastro;
-  final String cpfcnpj;
-  final String endereco;
-  final String email;
+  final String? cpfcnpj;
+  final String? endereco;
+  final String? email;
 
   Cliente({
     this.id,
     required this.nome,
     required this.contato,
-    required this.dataNascimento,
+    this.dataNascimento,
     required this.dataCadastro,
-    required this.cpfcnpj,
-    required this.endereco,
-    required this.email,
+    this.cpfcnpj,
+    this.endereco,
+    this.email,
   });
 
   factory Cliente.fromJson(Map<String, dynamic> json) {
     return Cliente(
-      id: json['id'],
-      nome: json['nome'],
-      contato: json['contato'],
-      dataNascimento: DateTime.parse(json['dataNascimento']),
+      id: json['id'] as int?,
+      nome: json['nome'] as String,
+      contato: json['contato'] as String,
+      dataNascimento: json['dataNascimento'] != null
+          ? DateTime.tryParse(json['dataNascimento'])
+          : null,
       dataCadastro: DateTime.parse(json['dataCadastro']),
-      cpfcnpj: json['cpfcnpj'],
-      endereco: json['endereco'],
-      email: json['email'],
+      cpfcnpj: json['cpfcnpj'] as String?,
+      endereco: json['endereco'] as String?,
+      email: json['email'] as String?,
     );
   }
 
@@ -37,7 +39,7 @@ class Cliente {
       if (id != null) 'id': id,
       'nome': nome,
       'contato': contato,
-      'dataNascimento': dataNascimento.toIso8601String(),
+      'dataNascimento': dataNascimento?.toIso8601String(),
       'dataCadastro': dataCadastro.toIso8601String(),
       'cpfcnpj': cpfcnpj,
       'endereco': endereco,
