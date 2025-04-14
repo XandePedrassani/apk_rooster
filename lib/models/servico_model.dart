@@ -1,7 +1,5 @@
-
 import 'package:rooster/models/servico_produto_model.dart';
 import 'package:rooster/models/usuario.dart';
-
 import 'cliente_model.dart';
 
 class Servico {
@@ -24,6 +22,23 @@ class Servico {
     this.status = 'pendente',
     this.produtos = const [],
   });
+
+  factory Servico.fromJson(Map<String, dynamic> json) {
+    return Servico(
+      id: json['id'],
+      dtMovimento: DateTime.parse(json['dtMovimento']),
+      dtEntrega: DateTime.parse(json['dtEntrega']),
+      observacao: json['observacao'],
+      cliente: Cliente.fromJson(json['cliente']),
+      usuario: Usuario.fromJson(json['usuario']),
+      status: json['status'] ?? 'pendente',
+      produtos: json['produtos'] != null
+          ? (json['produtos'] as List)
+          .map((e) => ServicoProduto.fromJson(e))
+          .toList()
+          : [],
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

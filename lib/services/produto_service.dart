@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
+import '../config.dart';
 import '../models/produto_model.dart';
 
 class ProdutoService {
-  final String baseUrl = 'http://localhost:8080/produtos';
+  final String baseUrl = "${AppConfig.baseUrl}/produtos";
 
   Future<List<Produto>> getProdutos() async {
     final response = await http.get(Uri.parse(baseUrl));

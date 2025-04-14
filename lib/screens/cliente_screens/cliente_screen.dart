@@ -72,11 +72,11 @@ class _ClienteScreenState extends State<ClienteScreen> {
                 ),
                 TextFormField(
                   controller: _cpfcnpjController,
-                  decoration: InputDecoration(labelText: 'CPF ou CNPJ')
+                  decoration: InputDecoration(labelText: 'CPF ou CNPJ'),
                 ),
                 TextFormField(
                   controller: _enderecoController,
-                  decoration: InputDecoration(labelText: 'Endereço')
+                  decoration: InputDecoration(labelText: 'Endereço'),
                 ),
                 TextFormField(
                   controller: _emailController,
@@ -120,10 +120,11 @@ class _ClienteScreenState extends State<ClienteScreen> {
                       try {
                         if (widget.cliente == null) {
                           await ClienteService().createCliente(cliente);
+                          Navigator.pop(context, cliente); // ✅ retorna cliente criado
                         } else {
                           await ClienteService().updateCliente(cliente);
+                          Navigator.pop(context, cliente); // ✅ retorna cliente atualizado
                         }
-                        Navigator.pop(context);
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Erro ao salvar cliente: $e')),

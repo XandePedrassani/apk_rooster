@@ -25,4 +25,14 @@ class ServicoProduto {
     'observacao': observacao,
     'sequencia': sequencia,
   };
+  factory ServicoProduto.fromJson(Map<String, dynamic> json) {
+    return ServicoProduto(
+      id: json['id'],
+      produto: json['produto'],
+      quantidade: json['quantidade'],
+      precoUnitario: (json['precoUnitario'] as num).toDouble(),
+      observacao: json['observacao'],
+      sequencia: json['sequencia']
+    );
+  }
 }

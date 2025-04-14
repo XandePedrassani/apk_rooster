@@ -1,14 +1,14 @@
 class Usuario {
   final int? id;
-  final String nome;
-  final String senha;
-  final String email;
+  final String? nome;
+  final String? senha;
+  final String? email;
 
   Usuario({
     this.id,
-    required this.nome,
-    required this.senha,
-    required this.email,
+    this.nome,
+    this.senha,
+    this.email,
   });
   Map<String, dynamic> toJson() {
     return {
@@ -17,5 +17,13 @@ class Usuario {
       'senha': senha,
       'email': email,
     };
+  }
+  factory Usuario.fromJson(Map<String, dynamic> json) {
+    return Usuario(
+        id: json['id'],
+        nome: json['nome'],
+        senha: json['senha'],
+        email: json['email']
+    );
   }
 }
