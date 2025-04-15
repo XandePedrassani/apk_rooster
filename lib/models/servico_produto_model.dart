@@ -1,7 +1,6 @@
 import 'package:rooster/models/produto_model.dart';
 
 class ServicoProduto {
-  int? id;
   Produto produto;
   int quantidade;
   double precoUnitario;
@@ -9,7 +8,6 @@ class ServicoProduto {
   int sequencia;
 
   ServicoProduto({
-    this.id,
     required this.produto,
     required this.quantidade,
     required this.precoUnitario,
@@ -18,7 +16,6 @@ class ServicoProduto {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
     'produto': produto.toJson(),
     'quantidade': quantidade,
     'precoUnitario': precoUnitario,
@@ -27,8 +24,7 @@ class ServicoProduto {
   };
   factory ServicoProduto.fromJson(Map<String, dynamic> json) {
     return ServicoProduto(
-      id: json['id'],
-      produto: json['produto'],
+      produto: Produto.fromJson(json['produto']),
       quantidade: json['quantidade'],
       precoUnitario: (json['precoUnitario'] as num).toDouble(),
       observacao: json['observacao'],

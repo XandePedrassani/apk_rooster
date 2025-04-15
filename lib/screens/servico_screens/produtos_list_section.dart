@@ -5,11 +5,13 @@ class ProdutosListSection extends StatelessWidget {
   final List<ServicoProduto> produtosAdicionados;
   final VoidCallback onAdicionarProduto;
   final ValueChanged<ServicoProduto> onRemoverProduto;
+  final ValueChanged<ServicoProduto> onEditarProduto;
 
   ProdutosListSection({
     required this.produtosAdicionados,
     required this.onAdicionarProduto,
     required this.onRemoverProduto,
+    required this.onEditarProduto,
   });
 
   @override
@@ -26,14 +28,43 @@ class ProdutosListSection extends StatelessWidget {
             ),
           ],
         ),
-        ...produtosAdicionados.map((sp) => ListTile(
-          title: Text('${sp.produto.nome} - ${sp.quantidade}x'),
-          subtitle: Text('R\$ ${sp.precoUnitario.toStringAsFixed(2)}'),
-          trailing: IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () => onRemoverProduto(sp),
-          ),
-        )),
+        ...produtosAdicionados.map((sp) {
+          final total = sp.quantidade * sp.precoUnitario;
+          return Card(
+            margin: EdgeInsets.symmetric(vertical: 4),
+            child: ListTile(
+              title: Text('${sp.produto.nome} (${sp.quantidade}x)'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Preço unitário: R\$ ${sp.precoUnitario.toStringAsFixed(2)}'),
+                  Text('Total: R\$ ${total.toStringAsFixed(2)}'),
+                  if (sp.observacao != null && sp.observacao!.trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        'Obs: ${sp.observacao}',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () => onEditarProduto(sp),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () => onRemoverProduto(sp),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
       ],
     );
   }

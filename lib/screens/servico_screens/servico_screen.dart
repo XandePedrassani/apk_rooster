@@ -8,6 +8,7 @@ import '../../services/cliente_service.dart';
 import '../../services/produto_service.dart';
 import '../../services/servico_service.dart';
 import '../cliente_screens/cliente_screen.dart';
+import 'adicionar_produto_dialog.dart';
 import 'cliente_dropdown_field.dart';
 import 'status_dropdown_field.dart';
 import 'data_entrega_picker.dart';
@@ -59,70 +60,19 @@ class _ServicoScreenState extends State<ServicoScreen> {
   }
 
   void _adicionarProduto() async {
-    Produto? produtoSelecionado;
-    int quantidade = 1;
-    double preco = 0.00;
-    TextEditingController precoController = TextEditingController();
-
-    await showDialog(
+    final novoProduto = await mostrarAdicionarProdutoDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Adicionar Produto'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<Produto>(
-              items: _produtos
-                  .map((p) => DropdownMenuItem(
-                value: p,
-                child: Text(p.nome),
-              ))
-                  .toList(),
-              onChanged: (value) {
-                produtoSelecionado = value;
-                precoController.text = value?.preco.toStringAsFixed(2) ?? '';
-              },
-              decoration: InputDecoration(labelText: 'Produto'),
-            ),
-            TextFormField(
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Quantidade'),
-              initialValue: '1',
-              onChanged: (val) => quantidade = int.tryParse(val) ?? 1,
-            ),
-            TextFormField(
-              controller: precoController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Preço Unitário'),
-              onChanged: (val) => preco = double.parse(val),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: Text('Cancelar'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: Text('Adicionar'),
-            onPressed: () {
-              if (produtoSelecionado != null) {
-                setState(() {
-                  _produtosAdicionados.add(ServicoProduto(
-                    produto: produtoSelecionado!,
-                    quantidade: quantidade,
-                    precoUnitario: preco,
-                    sequencia: _produtosAdicionados.length + 1,
-                  ));
-                });
-              }
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
+      produtosDisponiveis: _produtos,
     );
+
+    if (novoProduto != null) {
+      setState(() {
+        novoProduto.sequencia = _produtosAdicionados.length + 1;
+        _produtosAdicionados.add(novoProduto);
+      });
+    }
   }
+
 
   void _salvarServico() async {
     if (!_formKey.currentState!.validate() || _clienteSelecionado == null) return;
@@ -188,13 +138,26 @@ class _ServicoScreenState extends State<ServicoScreen> {
                   obsController: _obsController,
                 ),
                 Divider(),
-                ProdutosListSection(
-                  produtosAdicionados: _produtosAdicionados,
-                  onAdicionarProduto: _adicionarProduto,
-                  onRemoverProduto: (sp) {
-                    setState(() => _produtosAdicionados.remove(sp));
-                  },
-                ),
+              ProdutosListSection(
+                produtosAdicionados: _produtosAdicionados,
+                onAdicionarProduto: _adicionarProduto,
+                onRemoverProduto: (sp) {
+                  setState(() => _produtosAdicionados.remove(sp));
+                },
+                onEditarProduto: (sp) async {
+                  final editado = await mostrarAdicionarProdutoDialog(
+                    context: context,
+                    produtosDisponiveis: _produtos,
+                    servicoProdutoExistente: sp, // precisa adaptar a função pra aceitar isso
+                  );
+                  if (editado != null) {
+                    setState(() {
+                      final index = _produtosAdicionados.indexOf(sp);
+                      _produtosAdicionados[index] = editado;
+                    });
+                  }
+                },
+              ),
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _salvarServico,

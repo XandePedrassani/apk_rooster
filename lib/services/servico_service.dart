@@ -7,7 +7,7 @@ import '../config.dart';
 class ServicoService {
   final String baseUrl = AppConfig.baseUrl;
   Future<List<Servico>> getServicos() async {
-    final response = await http.get(Uri.parse('$baseUrl/servicos'));
+    final response = await http.get(Uri.parse('$baseUrl/servicos/withProdutos'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -41,7 +41,7 @@ class ServicoService {
 
   Future<void> atualizarServico(Servico servico) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/servicos/${servico.id}'),
+      Uri.parse('$baseUrl/servicos'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(servico.toJson()),
     );
@@ -68,6 +68,14 @@ class ServicoService {
 
     if (response.statusCode != 200) {
       throw Exception('Erro ao atualizar status do serviço');
+    }
+  }
+
+  Future<void> deletarServico(int id) async {
+    final response = await http.delete(Uri.parse('$baseUrl/servicos/$id'));
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Falha ao excluir serviço');
     }
   }
 }

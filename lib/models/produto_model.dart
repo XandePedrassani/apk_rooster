@@ -50,4 +50,17 @@ class Produto {
       'marca': marca,
     };
   }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is Produto &&
+              runtimeType == other.runtimeType &&
+              id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() => 'Produto(id: $id, nome: $nome)';
+
 }

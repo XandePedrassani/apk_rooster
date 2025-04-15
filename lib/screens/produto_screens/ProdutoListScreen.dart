@@ -102,7 +102,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
                 ? CircleAvatar(backgroundImage: MemoryImage(Uint8List.fromList(produto.foto!)))
                 : CircleAvatar(child: Icon(Icons.inventory)),
             title: Text(produto.nome),
-            subtitle: Text('Preço: R\$ ${produto.preco?.toStringAsFixed(2) ?? '0.00'}'),
+            subtitle: Text('Preço: R\$ ${produto.preco.toStringAsFixed(2) ?? '0.00'}'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

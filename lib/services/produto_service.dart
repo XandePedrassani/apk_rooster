@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'dart:typed_data';
 import '../config.dart';
 import '../models/produto_model.dart';
 

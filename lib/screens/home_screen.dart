@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rooster/screens/produto_screens/ProdutoListScreen.dart';
+import 'package:rooster/screens/servico_screens/ServicosListScreen.dart';
 import 'package:rooster/screens/servico_screens/servico_screen.dart';
 import 'cliente_screens/ClienteListScreen.dart';
 
@@ -57,6 +58,20 @@ class HomeScreen extends StatelessWidget {
                 textStyle: TextStyle(fontSize: 20),
               ),
               child: Text('Serviços'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ServicosListScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                textStyle: TextStyle(fontSize: 20),
+              ),
+              child: Text('Listar Serviços'),
             ),
             // Adicionar mais botões se necessário (ex: Relatórios, Configurações)
           ],
