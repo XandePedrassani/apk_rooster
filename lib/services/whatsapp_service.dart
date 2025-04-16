@@ -1,11 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'package:url_launcher/url_launcher_string.dart';
+import '../lib/whatsapp_unilink.dart';
 import '../models/servico_model.dart';
 
 class WhatsAppService {
-  static Future<void> enviarMensagemServico(BuildContext context, Servico servico) async {
+  static Future<void> enviarMensagemServico(
+      BuildContext context, Servico servico) async {
     String telefone = servico.cliente.contato.replaceAll(RegExp(r'[^\d]'), '');
     final String nomeCliente = servico.cliente.nome;
     final String status = servico.status;
@@ -41,17 +42,18 @@ class WhatsAppService {
     *Equipe Oficina da Moda*
     """;
 
-    final mensagemCodificada = Uri.encodeComponent(mensagem.trimLeft());
+    try {
+      final link = WhatsAppUnilink(
+        phoneNumber: '55$telefone', // Código do país (55 = Brasil) + número
+        text: mensagem,
+      );
 
-    final url = Uri.parse("https://wa.me/55$telefone?text=$mensagemCodificada");
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
+      // Abre o WhatsApp
+      await launchUrlString('$link');
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível abrir o WhatsApp')),
+        SnackBar(content: Text('Não foi possível abrir o WhatsApp: $e')),
       );
     }
   }
-
 }
