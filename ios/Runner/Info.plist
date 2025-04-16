@@ -51,5 +51,9 @@
     <string>Este app precisa acessar a câmera para tirar fotos do produto.</string>
     <key>NSAllowsArbitraryLoads</key>
     <true/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>whatsapp</string>
+    </array>
 </dict>
 </plist>

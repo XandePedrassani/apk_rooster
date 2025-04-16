@@ -2,13 +2,16 @@ workflows:
   ios:
     name: iOS Build
     max_build_duration: 60
-    os: macos
     environment:
-      flutter: 3.13.9
+      flutter: "3.13.9"  # Como string para evitar problemas
       xcode: latest
+      vars:
+        FLUTTER_BUILD_ARGS: "--no-sound-null-safety"
     scripts:
       - flutter clean
+      - rm -rf ios/Pods ios/Podfile.lock  # Limpeza adicional para evitar conflitos
       - flutter pub get
-      - flutter build ios --release --no-codesign
+      - pod install --repo-update --project-directory=ios  # Atualiza dependências nativas
+      - flutter build ios --release --no-codesign $FLUTTER_BUILD_ARGS
     artifacts:
       - build/ios/iphoneos/Runner.app
