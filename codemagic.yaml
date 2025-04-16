@@ -3,15 +3,22 @@ workflows:
     name: iOS Build
     max_build_duration: 60
     environment:
-      flutter: "3.13.9"  # Como string para evitar problemas
+      flutter: "3.13.9"  # Evita problemas com auto-detect
       xcode: latest
       vars:
         FLUTTER_BUILD_ARGS: "--no-sound-null-safety"
     scripts:
-      - flutter clean
-      - rm -rf ios/Pods ios/Podfile.lock  # Limpeza adicional para evitar conflitos
-      - flutter pub get
-      - pod install --repo-update --project-directory=ios  # Atualiza dependências nativas
-      - flutter build ios --release --no-codesign $FLUTTER_BUILD_ARGS
+      - name: Clean build environment
+        script: |
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock
+      - name: Get Flutter dependencies
+        script: flutter pub get
+      - name: Set iOS deployment target to 12.0
+        script: echo "platform :ios, '12.0'" > ios/Podfile
+      - name: Install CocoaPods dependencies
+        script: pod install --repo-update --project-directory=ios
+      - name: Build iOS release
+        script: flutter build ios --release --no-codesign $FLUTTER_BUILD_ARGS
     artifacts:
       - build/ios/iphoneos/Runner.app
