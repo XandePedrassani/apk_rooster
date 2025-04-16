@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'config.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? savedUrl = prefs.getString('base_url');
+  if (savedUrl != null) {
+    AppConfig.setBaseUrl(savedUrl);
+  }
   runApp(MyApp());
-  /*runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: ClienteListScreen(),
-  ));*/
 }
 
 class MyApp extends StatelessWidget {

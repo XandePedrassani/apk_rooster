@@ -65,6 +65,16 @@ class ProdutosListSection extends StatelessWidget {
             ),
           );
         }),
+        Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+            'Total geral: R\$ ${produtosAdicionados.fold(0.0, (total, sp) => total + (sp.quantidade * sp.precoUnitario)).toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        ),
       ],
     );
   }

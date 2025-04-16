@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/servico_model.dart';
 import '../../services/servico_service.dart';
+import '../../services/whatsapp_service.dart';
 import 'servico_screen.dart';
 
 class ServicosListScreen extends StatefulWidget {
@@ -202,6 +204,10 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
+                            icon: Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                            onPressed: () => WhatsAppService.enviarMensagemServico(context, servico),
+                          ),
+                          IconButton(
                             icon: Icon(Icons.print),
                             onPressed: () => _imprimir(servico),
                           ),
@@ -230,6 +236,19 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ServicoScreen(),
+            ),
+          );
+          _carregarServicos();
+        },
+        child: Icon(Icons.add),
+        tooltip: 'Novo Serviço',
       ),
     );
   }

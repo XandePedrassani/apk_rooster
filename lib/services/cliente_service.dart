@@ -36,6 +36,8 @@ class ClienteService {
         body: json.encode(jsonData), // Certifique-se de que json.encode não está falhando
       );
       print("Resposta da API: ${response.statusCode} - ${response.body}");
+      final responseData = json.decode(response.body);
+      cliente.id = responseData['id'];
     } catch (e) {
       print("Erro na requisição: $e");
     }
