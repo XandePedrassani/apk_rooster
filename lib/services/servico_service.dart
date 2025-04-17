@@ -78,4 +78,21 @@ class ServicoService {
       throw Exception('Falha ao excluir serviço');
     }
   }
+  Future<bool> imprimirServico(int id) async {
+    final url = Uri.parse('$baseUrl/impressao/$id');
+
+    try {
+      final response = await http.post(url);
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print('Erro ao imprimir: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Erro na chamada da API: $e');
+      return false;
+    }
+  }
 }

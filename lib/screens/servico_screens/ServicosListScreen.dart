@@ -98,9 +98,18 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
     );
   }
 
-  void _imprimir(Servico servico) {
-    // Lógica de impressão aqui
-    print('Imprimindo serviço ${servico.id}');
+  Future<void> _imprimir(Servico servico) async {
+    final service = ServicoService();
+
+    final sucesso = await service.imprimirServico(servico.id!);
+
+    if (sucesso) {
+      print('Impressão enviada com sucesso!');
+      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Impressão enviada com sucesso!')));
+    } else {
+      print('Falha ao enviar impressão.');
+      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao imprimir.')));
+    }
   }
 
   @override
