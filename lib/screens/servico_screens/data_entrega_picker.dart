@@ -14,25 +14,15 @@ class DataEntregaPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () async {
+        final DateTime hoje = DateTime.now();
+        final DateTime initialDate = dataEntrega.isBefore(hoje) ? hoje : dataEntrega;
+
         final picked = await showDatePicker(
           context: context,
           initialDate: dataEntrega,
-          firstDate: DateTime.now(),
+          firstDate: DateTime(2023),
           lastDate: DateTime(2100),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.light(
-                  primary: Theme.of(context).primaryColor,
-                  onPrimary: Colors.white,
-                  surface: Colors.white,
-                  onSurface: Colors.black,
-                ),
-                dialogBackgroundColor: Colors.white,
-              ),
-              child: child!,
-            );
-          },
+          locale: const Locale("pt", "BR"),
         );
         if (picked != null && picked != dataEntrega) {
           onDataEntregaChanged(picked);

@@ -17,6 +17,13 @@ class HomeScreen extends StatelessWidget {
         children: [
           _buildMenuButton(
             context,
+            label: 'Serviços',
+            icon: Icons.build,
+            color: Colors.orange,
+            destination: ServicosListScreen(),
+          ),
+          _buildMenuButton(
+            context,
             label: 'Clientes',
             icon: Icons.person,
             color: Colors.teal,
@@ -29,20 +36,8 @@ class HomeScreen extends StatelessWidget {
             color: Colors.deepPurple,
             destination: ProdutoListScreen(),
           ),
-          _buildMenuButton(
-            context,
-            label: 'Serviços',
-            icon: Icons.build,
-            color: Colors.orange,
-            destination: ServicosListScreen(),
-          ),
-          _buildMenuButton(
-            context,
-            label: 'Configurações',
-            icon: Icons.settings,
-            color: Colors.grey,
-            destination: ConfigScreen(),
-          ),
+          const SizedBox(height: 20),
+          _buildConfigButton(context),
         ],
       ),
     );
@@ -77,6 +72,22 @@ class HomeScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildConfigButton(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: IconButton(
+        icon: const Icon(Icons.settings, color: Colors.grey),
+        tooltip: 'Configurações',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ConfigScreen()),
+          );
+        },
       ),
     );
   }

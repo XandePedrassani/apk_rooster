@@ -4,6 +4,7 @@ import '../../models/servico_model.dart';
 import '../../services/servico_service.dart';
 import '../../services/whatsapp_service.dart';
 import 'servico_screen.dart';
+// ... imports permanecem os mesmos
 
 class ServicosListScreen extends StatefulWidget {
   @override
@@ -15,10 +16,9 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
   List<Servico> _filtrados = [];
   TextEditingController _buscaTextoController = TextEditingController();
 
-  DateTime? _dataInicio;
-  DateTime? _dataFim;
+  DateTime? _dataFiltro;
   bool _filtrarPorEntrega = true;
-  String _statusSelecionado = 'Todos';
+  String _statusSelecionado = 'Pendente';
 
   @override
   void initState() {
@@ -30,7 +30,7 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
     final servicos = await ServicoService().getServicos();
     setState(() {
       _servicos = servicos;
-      _filtrar(); // já filtra assim que carrega
+      _filtrar();
     });
   }
 
@@ -45,33 +45,33 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
         final textoCompleto = '$textoId $nomeCliente $observacao';
 
         final correspondeTexto = textoBusca.isEmpty || textoCompleto.contains(textoBusca);
-        final correspondeStatus = _statusSelecionado == 'Todos' || servico.status.toLowerCase() == _statusSelecionado.toLowerCase();
+        final correspondeStatus = _statusSelecionado == 'Todos' ||
+            servico.status.toLowerCase() == _statusSelecionado.toLowerCase();
 
         final dataBase = _filtrarPorEntrega ? servico.dtEntrega : servico.dtMovimento;
-        final dentroDoPeriodo = (_dataInicio == null || dataBase.isAfter(_dataInicio!.subtract(Duration(days: 1)))) &&
-            (_dataFim == null || dataBase.isBefore(_dataFim!.add(Duration(days: 1))));
+        final correspondeData = _dataFiltro == null ||
+            (dataBase.year == _dataFiltro!.year &&
+                dataBase.month == _dataFiltro!.month &&
+                dataBase.day == _dataFiltro!.day);
 
-        return correspondeTexto && correspondeStatus && dentroDoPeriodo;
+        return correspondeTexto && correspondeStatus && correspondeData;
       }).toList();
 
       _filtrados.sort((a, b) => a.dtEntrega.compareTo(b.dtEntrega));
     });
   }
 
-  Future<void> _selecionarData(BuildContext context, bool isInicio) async {
+  Future<void> _selecionarData(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      locale: const Locale("pt", "BR"),
     );
     if (picked != null) {
       setState(() {
-        if (isInicio) {
-          _dataInicio = picked;
-        } else {
-          _dataFim = picked;
-        }
+        _dataFiltro = picked;
       });
       _filtrar();
     }
@@ -111,7 +111,6 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
       // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao imprimir.')));
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +119,6 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Campo único de pesquisa
             TextField(
               controller: _buscaTextoController,
               decoration: InputDecoration(labelText: 'Buscar por ID, Cliente ou Observação'),
@@ -128,29 +126,33 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
             ),
             SizedBox(height: 10),
 
-            // Filtros por data e status
+            // Filtro por data única
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Período (${_filtrarPorEntrega ? 'Entrega' : 'Emissão'})'),
+                      Text('Data (${_filtrarPorEntrega ? 'Entrega' : 'Emissão'})'),
                       Row(
                         children: [
-                          TextButton(
-                            onPressed: () => _selecionarData(context, true),
-                            child: Text(_dataInicio == null
-                                ? 'Início'
-                                : '${_dataInicio!.day}/${_dataInicio!.month}/${_dataInicio!.year}'),
+                          Text(
+                            _dataFiltro == null
+                                ? 'Nenhuma data selecionada'
+                                : '${_dataFiltro!.day}/${_dataFiltro!.month}/${_dataFiltro!.year}',
                           ),
-                          Text(' até '),
-                          TextButton(
-                            onPressed: () => _selecionarData(context, false),
-                            child: Text(_dataFim == null
-                                ? 'Fim'
-                                : '${_dataFim!.day}/${_dataFim!.month}/${_dataFim!.year}'),
+                          IconButton(
+                            onPressed: () => _selecionarData(context),
+                            icon: Icon(Icons.calendar_month_outlined),
                           ),
+                          if (_dataFiltro != null)
+                            TextButton(
+                              onPressed: () {
+                                setState(() => _dataFiltro = null);
+                                _filtrar();
+                              },
+                              child: Text("Limpar"),
+                            ),
                         ],
                       ),
                     ],
@@ -173,7 +175,7 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
                 Text('Status: '),
                 DropdownButton<String>(
                   value: _statusSelecionado,
-                  items: ['Todos', 'Pendente', 'Pronto']
+                  items: ['Todos', 'Pendente', 'Pronto', 'Pendente Pagamento']
                       .map((status) => DropdownMenuItem(
                     child: Text(status),
                     value: status,
@@ -189,7 +191,6 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
 
             Divider(),
 
-            // Lista de serviços
             Expanded(
               child: _filtrados.isEmpty
                   ? Center(child: Text('Nenhum serviço encontrado'))
@@ -238,6 +239,14 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
                           ),
                         ],
                       ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ServicoScreen(servico: servico),
+                          ),
+                        ).then((_) => _carregarServicos());
+                      },
                     ),
                   );
                 },
@@ -262,3 +271,5 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
     );
   }
 }
+
+

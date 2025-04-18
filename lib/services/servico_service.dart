@@ -37,6 +37,8 @@ class ServicoService {
     if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception('Erro ao criar serviço');
     }
+    final responseData = json.decode(response.body);
+    servico.id = responseData['id'];
   }
 
   Future<void> atualizarServico(Servico servico) async {
@@ -93,6 +95,34 @@ class ServicoService {
     } catch (e) {
       print('Erro na chamada da API: $e');
       return false;
+    }
+  }
+
+  Future<bool> atualizarStatus(int id, String novoStatus) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/servicos/$id/status'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'status': novoStatus}),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print('Erro ao atualizar status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Exceção ao atualizar status: $e');
+      return false;
+    }
+  }
+
+  organizaSequenciaProd(Servico novoServico) {
+    for (int i = 0; i < novoServico.produtos.length; i++) {
+      novoServico.produtos[i].sequencia = i+1;
     }
   }
 }

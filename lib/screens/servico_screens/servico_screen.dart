@@ -7,6 +7,7 @@ import '../../models/usuario.dart';
 import '../../services/cliente_service.dart';
 import '../../services/produto_service.dart';
 import '../../services/servico_service.dart';
+import '../../services/whatsapp_service.dart';
 import '../cliente_screens/cliente_screen.dart';
 import 'adicionar_produto_dialog.dart';
 import 'cliente_dropdown_field.dart';
@@ -88,13 +89,86 @@ class _ServicoScreenState extends State<ServicoScreen> {
       usuario: Usuario(id: 1, nome: "Alexandre"),
     );
 
-    if (widget.servico == null) {
-      await ServicoService().criarServico(novoServico);
-    } else {
-      await ServicoService().atualizarServico(novoServico);
-    }
+    try {
+      await ServicoService().organizaSequenciaProd(novoServico);
+      if (widget.servico == null) {
+        await ServicoService().criarServico(novoServico);
+      } else {
+        await ServicoService().atualizarServico(novoServico);
+      }
 
-    Navigator.pop(context);
+      if (!mounted) return; // Verifique se o widget ainda está na árvore
+
+      if (_status == 'pendente') {
+        bool? desejaImprimir = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('O serviço foi salvo com sucesso!'),
+              content: Text('Deseja imprimir agora?'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Não'),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                TextButton(
+                  child: Text('Sim'),
+                  onPressed: () => Navigator.of(context).pop(true),
+                ),
+              ],
+            );
+          },
+        );
+
+        // Se o usuário quiser imprimir, chama a função de imprimir
+        if (desejaImprimir == true) {
+          final service = ServicoService();
+
+          final sucesso = await service.imprimirServico(novoServico.id!);
+
+          if (sucesso && mounted) {
+            print('Impressão enviada com sucesso!');
+            // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Impressão enviada com sucesso!')));
+          } else if (mounted) {
+            print('Falha ao enviar impressão.');
+            // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao imprimir.')));
+          }
+        }
+      } else if (novoServico.status != widget.servico?.status && (novoServico.status == 'pronto' || novoServico.status == 'pendente pagamento')) {
+        bool? desejaEnviar = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Status atualizado com sucesso'),
+              content: Text('Deseja avisar o cliente pelo WhatsApp?'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('Não'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('Sim'),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (desejaEnviar == true && mounted) {
+          WhatsAppService.enviarMensagemServico(context, novoServico);
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Seguro chamar, pois estamos verificando se o widget ainda está montado
+      }
+    } catch (e) {
+      print('Erro ao salvar o serviço: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao salvar o serviço: $e')));
+      }
+    }
   }
 
   @override

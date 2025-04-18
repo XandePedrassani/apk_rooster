@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../models/servico_model.dart';
+import '../../services/whatsapp_service.dart';
+
 class StatusDropdownField extends StatelessWidget {
   final String? status;
   final ValueChanged<String?> onStatusChanged;
+  final Servico? servico;
   final bool enabled;
 
   const StatusDropdownField({
     required this.status,
     required this.onStatusChanged,
+    this.servico,
     this.enabled = true,
     Key? key,
   }) : super(key: key);
@@ -64,11 +69,16 @@ class StatusDropdownField extends StatelessWidget {
           value: 'pronto',
           child: Text('Pronto'),
         ),
+        const PopupMenuItem<String>(
+          value: 'pendente pagamento',
+          child: Text('Pendente Pagamento'),
+        ),
       ],
-    ).then((value) {
+    ).then((value) async {
       if (value != null) {
         onStatusChanged(value);
       }
     });
   }
+
 }

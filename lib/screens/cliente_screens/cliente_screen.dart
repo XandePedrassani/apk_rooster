@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/cliente_model.dart';
 import '../../services/cliente_service.dart';
 
@@ -68,7 +69,19 @@ class _ClienteScreenState extends State<ClienteScreen> {
                 TextFormField(
                   controller: _contatoController,
                   decoration: InputDecoration(labelText: 'Contato'),
-                  validator: (value) => value!.isEmpty ? 'Contato é obrigatório' : null,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11), // Ex: 11999999999
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Contato é obrigatório';
+                    } else if (value.length < 10 || value.length > 11) {
+                      return 'Número inválido. Use DDD + número.';
+                    }
+                    return null;
+                  },
                 ),
                 TextFormField(
                   controller: _cpfcnpjController,

@@ -21,13 +21,22 @@ class ProdutosListSection extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Produtos adicionados:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Produtos adicionados:',
+              style: TextStyle(fontWeight: FontWeight.bold,
+                  fontSize: 20
+              ),
+            ),
             IconButton(
-              icon: Icon(Icons.add),
+              icon: Icon(
+                  Icons.add,
+                  size: 45.0
+              ),
+              iconSize: 45,
               onPressed: onAdicionarProduto,
             ),
           ],
         ),
+        SizedBox(height: 10),
         ...produtosAdicionados.map((sp) {
           final total = sp.quantidade * sp.precoUnitario;
           return Card(
@@ -62,6 +71,9 @@ class ProdutosListSection extends StatelessWidget {
                   ),
                 ],
               ),
+              onTap: () {
+                 onEditarProduto(sp);
+              },
             ),
           );
         }),
