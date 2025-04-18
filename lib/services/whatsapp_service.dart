@@ -37,7 +37,6 @@ class WhatsAppService {
     
     Agradecemos por confiar no nosso trabalho ❤️
     Se precisar de algo, é só chamar por aqui mesmo!
-    Esperamos te ver em breve com tudo prontinho 😉
     
     *Equipe Oficina da Moda*
     """;
