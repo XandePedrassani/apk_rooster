@@ -216,7 +216,7 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
                     final valorTotal = produto['quantidade'] * produto['precoUnitario'];
                     
                     return ListTile(
-                      title: Text(produto['produto']['descricao']),
+                      title: Text(produto['produto']['nome']),
                       subtitle: Text(
                         '${produto['quantidade']} x ${formatoMoeda.format(produto['precoUnitario']?? 0.0)}',
                       ),

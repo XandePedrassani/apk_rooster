@@ -105,6 +105,60 @@ class _ResultadosMensaisScreenState extends State<ResultadosMensaisScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
+                                'Faturamento por Status',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Novo: Exibição de faturamento por status
+                              if (_resultados['faturamentoPorStatus'] != null)
+                                ..._resultados['faturamentoPorStatus'].entries.map<Widget>((entry) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          entry.key.toString().toUpperCase(),
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        Text(
+                                          formatoMoeda.format(entry.value),
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Quantidade de Serviços por Status',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 200,
+                                child: _buildStatusChart(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
                                 'Faturamento por Semana',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -144,29 +198,6 @@ class _ResultadosMensaisScreenState extends State<ResultadosMensaisScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Serviços por Status',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 200,
-                                child: _buildStatusChart(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
                                 'Produtos Mais Utilizados',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -180,9 +211,11 @@ class _ResultadosMensaisScreenState extends State<ResultadosMensaisScreen> {
                                 itemCount: _resultados['produtosMaisUtilizados'].length,
                                 itemBuilder: (context, index) {
                                   final produto = _resultados['produtosMaisUtilizados'][index];
+                                  // Garantindo que quantidade é exibida como inteiro
+                                  final int quantidade = produto['quantidade'];
                                   return ListTile(
                                     title: Text(produto['nomeProduto']),
-                                    subtitle: Text('${produto['quantidade']} unidades'),
+                                    subtitle: Text('$quantidade unidades'),
                                     trailing: Text(
                                       formatoMoeda.format(produto['valorTotal']),
                                       style: const TextStyle(
@@ -309,10 +342,12 @@ class _ResultadosMensaisScreenState extends State<ResultadosMensaisScreen> {
     int colorIndex = 0;
     
     servicosPorStatus.forEach((status, quantidade) {
+      // Garantindo que quantidade é tratada como inteiro
+      final int qtd = quantidade;
       sections.add(
         PieChartSectionData(
-          value: quantidade.toDouble(),
-          title: '$status\n$quantidade',
+          value: qtd.toDouble(),
+          title: '$status\n$qtd',
           color: colors[colorIndex % colors.length],
           radius: 80,
           titleStyle: const TextStyle(
