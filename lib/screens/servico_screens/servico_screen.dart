@@ -212,36 +212,37 @@ class _ServicoScreenState extends State<ServicoScreen> {
                   obsController: _obsController,
                 ),
                 Divider(),
-              ProdutosListSection(
-                produtosAdicionados: _produtosAdicionados,
-                onAdicionarProduto: _adicionarProduto,
-                onRemoverProduto: (sp) {
-                  setState(() => _produtosAdicionados.remove(sp));
-                },
-                onEditarProduto: (sp) async {
-                  final editado = await mostrarAdicionarProdutoDialog(
-                    context: context,
-                    produtosDisponiveis: _produtos,
-                    servicoProdutoExistente: sp, // precisa adaptar a função pra aceitar isso
-                  );
-                  if (editado != null) {
-                    setState(() {
-                      final index = _produtosAdicionados.indexOf(sp);
-                      _produtosAdicionados[index] = editado;
-                    });
-                  }
-                },
-              ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _salvarServico,
-                  child: Text('Salvar'),
-                )
+                ProdutosListSection(
+                  produtosAdicionados: _produtosAdicionados,
+                  onAdicionarProduto: _adicionarProduto,
+                  onRemoverProduto: (sp) {
+                    setState(() => _produtosAdicionados.remove(sp));
+                  },
+                  onEditarProduto: (sp) async {
+                    final editado = await mostrarAdicionarProdutoDialog(
+                      context: context,
+                      produtosDisponiveis: _produtos,
+                      servicoProdutoExistente: sp, // precisa adaptar a função pra aceitar isso
+                    );
+                    if (editado != null) {
+                      setState(() {
+                        final index = _produtosAdicionados.indexOf(sp);
+                        _produtosAdicionados[index] = editado;
+                      });
+                    }
+                  },
+                ),
               ],
             ),
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _salvarServico,
+        icon: Icon(Icons.save),
+        label: Text('Salvar'),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

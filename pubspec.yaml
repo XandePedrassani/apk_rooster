@@ -37,6 +37,7 @@ dependencies:
   font_awesome_flutter: ^10.7.0
   shared_preferences: ^2.2.2
   whatsapp_unilink: ^2.1.0
+  fl_chart: ^0.62.0
   flutter_localizations:
     sdk: flutter
 

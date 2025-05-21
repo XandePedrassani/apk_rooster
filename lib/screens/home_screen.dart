@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rooster/screens/produto_screens/ProdutoListScreen.dart';
+import 'package:rooster/screens/relatorios_screen/relatorio_screen.dart';
 import 'package:rooster/screens/servico_screens/ServicosListScreen.dart';
 import 'package:rooster/screens/cliente_screens/ClienteListScreen.dart';
 import 'package:rooster/screens/config_screen.dart';
@@ -35,6 +36,13 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.shopping_bag,
             color: Colors.deepPurple,
             destination: ProdutoListScreen(),
+          ),
+          _buildMenuButton(
+            context,
+            label: 'Relatorios',
+            icon: Icons.loupe,
+            color: Colors.greenAccent,
+            destination: RelatorioScreen(),
           ),
           const SizedBox(height: 20),
           _buildConfigButton(context),
