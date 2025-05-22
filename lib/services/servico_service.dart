@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:rooster/models/servico_model.dart';
+import 'package:rooster/models/status_model.dart';
 
 import '../config.dart';
 
 class ServicoService {
   final String baseUrl = AppConfig.baseUrl;
+  
   Future<List<Servico>> getServicos() async {
     final response = await http.get(Uri.parse('$baseUrl/servicos/withProdutos'));
 
@@ -62,10 +64,26 @@ class ServicoService {
   }
 
   Future<void> marcarComoPronto(int id) async {
+    // Buscar o status "pronto" pelo nome
+    final statusResponse = await http.get(Uri.parse('$baseUrl/status'));
+    if (statusResponse.statusCode != 200) {
+      throw Exception('Erro ao buscar status');
+    }
+    
+    final List<dynamic> statusList = jsonDecode(statusResponse.body);
+    final prontoStatus = statusList.firstWhere(
+      (status) => status['nome'] == 'pronto',
+      orElse: () => null
+    );
+    
+    if (prontoStatus == null) {
+      throw Exception('Status "pronto" não encontrado');
+    }
+    
     final response = await http.put(
       Uri.parse('$baseUrl/servicos/$id/status'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'status': 'pronto'}),
+      body: jsonEncode({'statusId': prontoStatus['id']}),
     );
 
     if (response.statusCode != 200) {
@@ -80,6 +98,7 @@ class ServicoService {
       throw Exception('Falha ao excluir serviço');
     }
   }
+  
   Future<bool> imprimirServico(int id) async {
     final url = Uri.parse('$baseUrl/impressao/$id');
 
@@ -98,14 +117,14 @@ class ServicoService {
     }
   }
 
-  Future<bool> atualizarStatus(int id, String novoStatus) async {
+  Future<bool> atualizarStatus(int id, StatusModel novoStatus) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/servicos/$id/status'),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'status': novoStatus}),
+        body: jsonEncode({'statusId': novoStatus.id}),
       );
 
       if (response.statusCode == 200) {

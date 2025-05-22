@@ -9,7 +9,7 @@ class WhatsAppService {
       BuildContext context, Servico servico) async {
     String telefone = servico.cliente.contato.replaceAll(RegExp(r'[^\d]'), '');
     final String nomeCliente = servico.cliente.nome;
-    final String status = servico.status;
+    final String status = servico.status.nome;
     final String dataEntrega = servico.dtEntrega.toLocal().toString().split(' ')[0];
     final String obs = servico.observacao?.trim().isNotEmpty == true
         ? servico.observacao!

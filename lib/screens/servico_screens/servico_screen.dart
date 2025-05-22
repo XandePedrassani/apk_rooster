@@ -4,9 +4,11 @@ import '../../models/produto_model.dart';
 import '../../models/servico_model.dart';
 import '../../models/servico_produto_model.dart';
 import '../../models/usuario.dart';
+import '../../models/status_model.dart';
 import '../../services/cliente_service.dart';
 import '../../services/produto_service.dart';
 import '../../services/servico_service.dart';
+import '../../services/status_service.dart';
 import '../../services/whatsapp_service.dart';
 import '../cliente_screens/cliente_screen.dart';
 import 'adicionar_produto_dialog.dart';
@@ -29,35 +31,51 @@ class _ServicoScreenState extends State<ServicoScreen> {
   final _formKey = GlobalKey<FormState>();
 
   Cliente? _clienteSelecionado;
-  String _status = 'pendente';
+  StatusModel? _statusSelecionado;
   DateTime _dtEntrega = DateTime.now();
   TextEditingController _obsController = TextEditingController();
 
   List<ServicoProduto> _produtosAdicionados = [];
   List<Cliente> _clientes = [];
   List<Produto> _produtos = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _carregarClientesEProdutos();
+    _carregarDados();
 
     if (widget.servico != null) {
       _clienteSelecionado = widget.servico!.cliente;
-      _status = widget.servico!.status;
+      _statusSelecionado = widget.servico!.status;
       _dtEntrega = widget.servico!.dtEntrega;
       _obsController.text = widget.servico!.observacao ?? '';
       _produtosAdicionados = List.from(widget.servico!.produtos);
     }
   }
 
-  Future<void> _carregarClientesEProdutos() async {
-    final clientes = await ClienteService().getClientes();
-    final produtos = await ProdutoService().getProdutos();
+  Future<void> _carregarDados() async {
     setState(() {
-      _clientes = clientes;
-      _produtos = produtos;
+      _isLoading = true;
     });
+    
+    try {
+      final clientes = await ClienteService().getClientes();
+      final produtos = await ProdutoService().getProdutos();
+      
+      setState(() {
+        _clientes = clientes;
+        _produtos = produtos;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados: $e')),
+      );
+    }
   }
 
   void _adicionarProduto() async {
@@ -74,16 +92,15 @@ class _ServicoScreenState extends State<ServicoScreen> {
     }
   }
 
-
   void _salvarServico() async {
-    if (!_formKey.currentState!.validate() || _clienteSelecionado == null) return;
+    if (!_formKey.currentState!.validate() || _clienteSelecionado == null || _statusSelecionado == null) return;
 
     final novoServico = Servico(
       id: widget.servico?.id,
       dtMovimento: DateTime.now(),
       dtEntrega: _dtEntrega,
       cliente: _clienteSelecionado!,
-      status: _status,
+      status: _statusSelecionado!,
       observacao: _obsController.text,
       produtos: _produtosAdicionados,
       usuario: Usuario(id: 1, nome: "Alexandre"),
@@ -99,7 +116,7 @@ class _ServicoScreenState extends State<ServicoScreen> {
 
       if (!mounted) return; // Verifique se o widget ainda está na árvore
 
-      if (_status == 'pendente') {
+      if (_statusSelecionado!.nome == 'pendente') {
         bool? desejaImprimir = await showDialog<bool>(
           context: context,
           builder: (context) {
@@ -134,7 +151,9 @@ class _ServicoScreenState extends State<ServicoScreen> {
             // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao imprimir.')));
           }
         }
-      } else if (novoServico.status != widget.servico?.status && (novoServico.status == 'pronto' || novoServico.status == 'pendente pagamento')) {
+      } else if (widget.servico != null && 
+                 _statusSelecionado!.id != widget.servico!.status.id && 
+                 (_statusSelecionado!.nome == 'pronto' || _statusSelecionado!.nome == 'pendente pagamento')) {
         bool? desejaEnviar = await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
@@ -175,7 +194,7 @@ class _ServicoScreenState extends State<ServicoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.servico == null ? 'Novo Serviço' : 'Editar Serviço')),
-      body: _clientes.isEmpty
+      body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(16.0),
@@ -200,8 +219,8 @@ class _ServicoScreenState extends State<ServicoScreen> {
                 ),
                 SizedBox(height: 10),
                 StatusDropdownField(
-                  status: _status,
-                  onStatusChanged: (val) => setState(() => _status = val!),
+                  status: _statusSelecionado,
+                  onStatusChanged: (val) => setState(() => _statusSelecionado = val),
                 ),
                 SizedBox(height: 10),
                 DataEntregaPicker(
