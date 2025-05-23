@@ -3,14 +3,14 @@ class StatusModel {
   final String nome;
   final int ordem;
   final String? cor;
-  
+
   StatusModel({
-    required this.id, 
-    required this.nome, 
-    required this.ordem, 
-    this.cor
+    required this.id,
+    required this.nome,
+    required this.ordem,
+    this.cor,
   });
-  
+
   factory StatusModel.fromJson(Map<String, dynamic> json) {
     return StatusModel(
       id: json['id'],
@@ -19,7 +19,7 @@ class StatusModel {
       cor: json['cor'],
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -28,4 +28,17 @@ class StatusModel {
       'cor': cor,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is StatusModel &&
+              runtimeType == other.runtimeType &&
+              id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() => nome; // ajuda no debug
 }

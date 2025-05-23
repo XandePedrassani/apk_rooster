@@ -38,7 +38,22 @@ class StatusService {
       return null;
     }
   }
-  
+
+  Future<StatusModel?> getStatusByOrdem(int ordem) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/status/ordem/$ordem'));
+
+      if (response.statusCode == 200) {
+        return StatusModel.fromJson(jsonDecode(response.body));
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Erro ao buscar status por ORDEM: $e');
+      return null;
+    }
+  }
+
   Future<StatusModel?> getStatusByNome(String nome) async {
     try {
       final allStatus = await getAllStatus();
