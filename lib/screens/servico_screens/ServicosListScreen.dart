@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/servico_model.dart';
@@ -17,37 +19,108 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
   List<Servico> _filtrados = [];
   List<StatusModel> _statusList = [];
   TextEditingController _buscaTextoController = TextEditingController();
-
   DateTime? _dataFiltro;
   bool _filtrarPorEntrega = true;
   StatusModel? _statusSelecionado;
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  int _currentPage = 0;
+  final int _pageSize = 20;
+  final statusService = StatusService();
+
+  // Controlador de scroll para detectar quando chegou ao final da lista
+  ScrollController _scrollController = ScrollController();
+  
+  // Timer para debounce na busca
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+
+    _inicializarTela();
+
+    _carregarDados();
+    
+    // Adicionar listener para detectar quando o usuário chega ao final da lista
+    _scrollController.addListener(_scrollListener);
+    
+    // Adicionar listener para debounce na busca
+    _buscaTextoController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _inicializarTela() async {
+    _statusSelecionado = await statusService.getStatusByOrdem(1);
+  }
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _buscaTextoController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+  
+  // Método para debounce na busca
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _resetAndReload();
+    });
+  }
+  
+  // Método para detectar quando chegou ao final da lista
+  void _scrollListener() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading && !_isLoadingMore && _hasMoreData) {
+      _carregarMaisDados();
+    }
+  }
+
+  // Método para resetar e recarregar dados
+  void _resetAndReload() {
+    setState(() {
+      _currentPage = 0;
+      _servicos = [];
+      _filtrados = [];
+      _hasMoreData = true;
+    });
     _carregarDados();
   }
 
+  // Método para carregar dados iniciais
   Future<void> _carregarDados() async {
+    if (!_hasMoreData) return;
+    
     setState(() {
       _isLoading = true;
     });
     
     try {
-      // Carregar status dinamicamente
-      final statusService = StatusService();
       final statusList = await statusService.getAllStatus();
       
-      // Carregar serviços
-      final servicos = await ServicoService().getServicos();
+      // Carregar serviços com paginação
+      final servicosPage = await ServicoService().getServicosPaginados(
+        page: _currentPage,
+        size: _pageSize,
+        statusId: _statusSelecionado?.id,
+        dataEntrega: _dataFiltro,
+        filtrarPorEntrega: _filtrarPorEntrega,
+        textoBusca: _buscaTextoController.text
+      );
       
       setState(() {
         _statusList = statusList;
-        _servicos = servicos;
         
-        // Definir status padrão como "Todos"
-        _statusSelecionado = null; // null representa "Todos"
+        // Adicionar novos serviços à lista existente
+        _servicos.addAll(servicosPage.content);
+        
+        // Verificar se há mais páginas
+        _hasMoreData = !servicosPage.last;
+        
+        // Incrementar página atual
+        _currentPage++;
         
         _isLoading = false;
       });
@@ -62,32 +135,56 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
       );
     }
   }
-
-  void _filtrar() {
-    final textoBusca = _buscaTextoController.text.toLowerCase();
-
+  
+  // Método para carregar mais dados (próxima página)
+  Future<void> _carregarMaisDados() async {
+    if (!_hasMoreData || _isLoadingMore) return;
+    
     setState(() {
-      _filtrados = _servicos.where((servico) {
-        final textoId = servico.id.toString();
-        final nomeCliente = servico.cliente.nome.toLowerCase();
-        final observacao = (servico.observacao ?? '').toLowerCase();
-        final textoCompleto = '$textoId $nomeCliente $observacao';
-
-        final correspondeTexto = textoBusca.isEmpty || textoCompleto.contains(textoBusca);
+      _isLoadingMore = true;
+    });
+    
+    try {
+      // Carregar próxima página de serviços
+      final servicosPage = await ServicoService().getServicosPaginados(
+        page: _currentPage,
+        size: _pageSize,
+        statusId: _statusSelecionado?.id,
+        dataEntrega: _dataFiltro,
+        filtrarPorEntrega: _filtrarPorEntrega,
+        textoBusca: _buscaTextoController.text
+      );
+      
+      setState(() {
+        // Adicionar novos serviços à lista existente
+        _servicos.addAll(servicosPage.content);
         
-        // Filtro de status dinâmico
-        final correspondeStatus = _statusSelecionado == null || 
-            (servico.status.id == _statusSelecionado!.id);
+        // Verificar se há mais páginas
+        _hasMoreData = !servicosPage.last;
+        
+        // Incrementar página atual
+        _currentPage++;
+        
+        _isLoadingMore = false;
+      });
+      
+      _filtrar();
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar mais dados: $e')),
+      );
+    }
+  }
 
-        final dataBase = _filtrarPorEntrega ? servico.dtEntrega : servico.dtMovimento;
-        final correspondeData = _dataFiltro == null ||
-            (dataBase.year == _dataFiltro!.year &&
-                dataBase.month == _dataFiltro!.month &&
-                dataBase.day == _dataFiltro!.day);
-
-        return correspondeTexto && correspondeStatus && correspondeData;
-      }).toList();
-
+  // Método para filtrar serviços localmente (após carregados)
+  void _filtrar() {
+    setState(() {
+      _filtrados = _servicos;
+      
+      // Ordenar por data de entrega
       _filtrados.sort((a, b) => a.dtEntrega.compareTo(b.dtEntrega));
     });
   }
@@ -100,11 +197,12 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
       lastDate: DateTime(2100),
       locale: const Locale("pt", "BR"),
     );
+    
     if (picked != null) {
       setState(() {
         _dataFiltro = picked;
       });
-      _filtrar();
+      _resetAndReload();
     }
   }
 
@@ -120,7 +218,7 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
             onPressed: () async {
               await ServicoService().deletarServico(servico.id!);
               Navigator.pop(context);
-              _carregarDados();
+              _resetAndReload();
             },
             child: Text('Excluir'),
           ),
@@ -131,18 +229,14 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
 
   Future<void> _imprimir(Servico servico) async {
     final service = ServicoService();
-
     final sucesso = await service.imprimirServico(servico.id!);
-
     if (sucesso) {
       print('Impressão enviada com sucesso!');
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Impressão enviada com sucesso!')));
     } else {
       print('Falha ao enviar impressão.');
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao imprimir.')));
     }
   }
-  
+
   // Método para obter a cor do status
   Color _getStatusColor(Servico servico) {
     if (servico.status.cor != null) {
@@ -163,7 +257,7 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
         return Colors.grey;
     }
   }
-  
+
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
@@ -171,188 +265,241 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
     }
     return Color(int.parse(hexColor, radix: 16));
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Serviços')),
-      body: _isLoading
+      body: _isLoading && _servicos.isEmpty
           ? Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _buscaTextoController,
-              decoration: InputDecoration(labelText: 'Buscar por ID, Cliente ou Observação'),
-              onChanged: (_) => _filtrar(),
-            ),
-            SizedBox(height: 10),
-
-            // Filtro por data única
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Data (${_filtrarPorEntrega ? 'Entrega' : 'Emissão'})'),
-                      Row(
-                        children: [
-                          Text(
-                            _dataFiltro == null
-                                ? 'Nenhuma data selecionada'
-                                : '${_dataFiltro!.day}/${_dataFiltro!.month}/${_dataFiltro!.year}',
-                          ),
-                          IconButton(
-                            onPressed: () => _selecionarData(context),
-                            icon: Icon(Icons.calendar_month_outlined),
-                          ),
-                          if (_dataFiltro != null)
-                            TextButton(
-                              onPressed: () {
-                                setState(() => _dataFiltro = null);
-                                _filtrar();
-                              },
-                              child: Text("Limpar"),
-                            ),
-                        ],
+          : RefreshIndicator(
+              onRefresh: () async {
+                _resetAndReload();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Campo de busca
+                    TextField(
+                      controller: _buscaTextoController,
+                      decoration: InputDecoration(
+                        labelText: 'Buscar por ID, Cliente ou Observação',
+                        suffixIcon: _buscaTextoController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear),
+                                onPressed: () {
+                                  _buscaTextoController.clear();
+                                  _resetAndReload();
+                                },
+                              )
+                            : null,
                       ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: _filtrarPorEntrega,
-                  onChanged: (val) {
-                    setState(() => _filtrarPorEntrega = val);
-                    _filtrar();
-                  },
-                ),
-                Text(_filtrarPorEntrega ? 'Entrega' : 'Emissão'),
-              ],
-            ),
-
-            // Filtro de status dinâmico
-            Row(
-              children: [
-                Text('Status: '),
-                DropdownButton<StatusModel?>(
-                  value: _statusSelecionado,
-                  items: [
-                    DropdownMenuItem<StatusModel?>(
-                      child: Text('Todos'),
-                      value: null,
                     ),
-                    ..._statusList.map((status) => DropdownMenuItem(
-                      child: Row(
-                        children: [
-                          if (status.cor != null)
-                            Container(
-                              width: 16,
-                              height: 16,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: _getColorFromHex(status.cor!),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          Text(status.nome[0].toUpperCase() + status.nome.substring(1)),
-                        ],
-                      ),
-                      value: status,
-                    )).toList(),
-                  ],
-                  onChanged: (valor) {
-                    setState(() => _statusSelecionado = valor);
-                    _filtrar();
-                  },
-                ),
-              ],
-            ),
-
-            Divider(),
-
-            Expanded(
-              child: _filtrados.isEmpty
-                  ? Center(child: Text('Nenhum serviço encontrado'))
-                  : ListView.builder(
-                itemCount: _filtrados.length,
-                itemBuilder: (_, index) {
-                  final servico = _filtrados[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text('Serviço #${servico.id}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                    SizedBox(height: 10),
+                    
+                    // Filtro por data única
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              /*Container(
-                                width: 12,
-                                height: 12,
-                                margin: const EdgeInsets.only(right: 8),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(servico),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),*/
-                              Expanded(
-                                child: Text(
-                                  '${servico.cliente.nome} | ${servico.status.nome} | Entrega: ${servico.dtEntrega.toLocal().toString().split(" ")[0]}'
-                                ),
+                              Text('Data (${_filtrarPorEntrega ? 'Entrega' : 'Emissão'})'),
+                              Row(
+                                children: [
+                                  Text(
+                                    _dataFiltro == null
+                                        ? 'Nenhuma data selecionada'
+                                        : '${_dataFiltro!.day}/${_dataFiltro!.month}/${_dataFiltro!.year}',
+                                  ),
+                                  IconButton(
+                                    onPressed: () => _selecionarData(context),
+                                    icon: Icon(Icons.calendar_month_outlined),
+                                  ),
+                                  if (_dataFiltro != null)
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() => _dataFiltro = null);
+                                        _resetAndReload();
+                                      },
+                                      child: Text("Limpar"),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
-                          SizedBox(height: 4),
-                          Text('Observação: ${servico.observacao ?? "Sem observação"}'),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
-                            onPressed: () => WhatsAppService.enviarMensagemServico(context, servico),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.print),
-                            onPressed: () => _imprimir(servico),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ServicoScreen(servico: servico),
-                                ),
-                              );
-                              _carregarDados();
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () => _confirmarExclusao(servico),
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ServicoScreen(servico: servico),
-                          ),
-                        ).then((_) => _carregarDados());
-                      },
+                        ),
+                        Switch(
+                          value: _filtrarPorEntrega,
+                          onChanged: (val) {
+                            setState(() => _filtrarPorEntrega = val);
+                            _resetAndReload();
+                          },
+                        ),
+                        Text(_filtrarPorEntrega ? 'Entrega' : 'Emissão'),
+                      ],
                     ),
-                  );
-                },
+                    
+                    // Filtro de status dinâmico
+                    Row(
+                      children: [
+                        Text('Status: '),
+                        DropdownButton<StatusModel?>(
+                          value: _statusSelecionado,
+                          items: [
+                            DropdownMenuItem<StatusModel?>(
+                              child: Text('Todos'),
+                              value: null,
+                            ),
+                            ..._statusList.map((status) => DropdownMenuItem(
+                              child: Row(
+                                children: [
+                                  if (status.cor != null)
+                                    Container(
+                                      width: 16,
+                                      height: 16,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        color: _getColorFromHex(status.cor!),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  Text(status.nome[0].toUpperCase() + status.nome.substring(1)),
+                                ],
+                              ),
+                              value: status,
+                            )).toList(),
+                          ],
+                          onChanged: (valor) {
+                            setState(() => _statusSelecionado = valor);
+                            _resetAndReload();
+                          },
+                        ),
+                      ],
+                    ),
+                    
+                    // Chips para filtros ativos
+                    if (_statusSelecionado != null || _dataFiltro != null || _buscaTextoController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Wrap(
+                          spacing: 8.0,
+                          children: [
+                            if (_statusSelecionado != null)
+                              Chip(
+                                label: Text(_statusSelecionado!.nome),
+                                deleteIcon: Icon(Icons.close, size: 18),
+                                onDeleted: () {
+                                  setState(() => _statusSelecionado = null);
+                                  _resetAndReload();
+                                },
+                              ),
+                            if (_dataFiltro != null)
+                              Chip(
+                                label: Text('${_dataFiltro!.day}/${_dataFiltro!.month}/${_dataFiltro!.year}'),
+                                deleteIcon: Icon(Icons.close, size: 18),
+                                onDeleted: () {
+                                  setState(() => _dataFiltro = null);
+                                  _resetAndReload();
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    
+                    Divider(),
+                    
+                    // Lista de serviços
+                    Expanded(
+                      child: _filtrados.isEmpty && !_isLoading
+                          ? Center(child: Text('Nenhum serviço encontrado'))
+                          : ListView.builder(
+                              controller: _scrollController,
+                              itemCount: _filtrados.length + (_hasMoreData ? 1 : 0),
+                              itemBuilder: (_, index) {
+                                // Mostrar indicador de carregamento no final da lista
+                                if (index >= _filtrados.length) {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+                                
+                                final servico = _filtrados[index];
+                                return Card(
+                                  child: ListTile(
+                                    title: Text('Serviço #${servico.id}'),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 12,
+                                              height: 12,
+                                              margin: const EdgeInsets.only(right: 8),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(servico),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            Text(servico.status.nome),
+                                          ],
+                                        ),
+                                        Text('Cliente: ${servico.cliente.nome}'),
+                                        Text('Entrega: ${servico.dtEntrega.day}/${servico.dtEntrega.month}/${servico.dtEntrega.year}'),
+                                        if (servico.observacao != null && servico.observacao!.isNotEmpty)
+                                          Text('Obs: ${servico.observacao}'),
+                                      ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.print),
+                                          onPressed: () => _imprimir(servico),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.edit),
+                                          onPressed: () async {
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => ServicoScreen(servico: servico),
+                                              ),
+                                            );
+                                            _resetAndReload();
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed: () => _confirmarExclusao(servico),
+                                        ),
+                                      ],
+                                    ),
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ServicoScreen(servico: servico),
+                                        ),
+                                      );
+                                      _resetAndReload();
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
         onPressed: () async {
           await Navigator.push(
             context,
@@ -360,10 +507,8 @@ class _ServicosListScreenState extends State<ServicosListScreen> {
               builder: (_) => ServicoScreen(),
             ),
           );
-          _carregarDados();
+          _resetAndReload();
         },
-        child: Icon(Icons.add),
-        tooltip: 'Novo Serviço',
       ),
     );
   }

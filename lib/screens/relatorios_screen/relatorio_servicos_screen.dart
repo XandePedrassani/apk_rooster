@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rooster/models/cliente_model.dart';
-import 'package:rooster/services/relatorio_service.dart';
+import 'package:rooster/models/status_model.dart';
+import 'package:rooster/screens/relatorios_screen/relatorio_servicos_screen.dart';
+import 'package:rooster/screens/relatorios_screen/resultados_mensais_screen.dart';
+import 'package:rooster/services/cliente_service.dart';
+import 'package:rooster/services/status_service.dart';
+
+import '../../services/relatorio_service.dart';
 
 class RelatorioServicosScreen extends StatefulWidget {
   final DateTime dataInicio;
@@ -23,25 +29,32 @@ class RelatorioServicosScreen extends StatefulWidget {
 
 class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
   final RelatorioService _relatorioService = RelatorioService();
+  final StatusService _statusService = StatusService();
   bool _isLoading = true;
   List<dynamic> _servicos = [];
   int _totalServicos = 0;
   double _valorTotal = 0.0;
   String _errorMessage = '';
+  Map<String, StatusModel> _statusMap = {};
 
   @override
   void initState() {
     super.initState();
-    _carregarRelatorio();
+    _carregarDados();
   }
 
-  Future<void> _carregarRelatorio() async {
+  Future<void> _carregarDados() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
 
     try {
+      // Carregar status para exibição correta
+      final statusList = await _statusService.getAllStatus();
+      final statusMap = {for (var status in statusList) status.nome: status};
+      
+      // Carregar relatório
       final resultado = await _relatorioService.getRelatorioServicos(
         widget.dataInicio,
         widget.dataFim,
@@ -53,6 +66,7 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
         _servicos = resultado['servicos'];
         _totalServicos = resultado['totalServicos'];
         _valorTotal = resultado['valorTotal']?? 0.0;
+        _statusMap = statusMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -68,6 +82,36 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Funcionalidade de exportação em desenvolvimento')),
     );
+  }
+  
+  // Método para obter a cor do status
+  Color _getStatusColor(String statusNome) {
+    final status = _statusMap[statusNome];
+    if (status != null && status.cor != null) {
+      return _getColorFromHex(status.cor!);
+    }
+    
+    // Cores padrão para compatibilidade
+    switch (statusNome.toLowerCase()) {
+      case 'pendente':
+        return Colors.orange;
+      case 'pronto':
+        return Colors.green;
+      case 'entregue':
+        return Colors.blue;
+      case 'pendente pagamento':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+  
+  Color _getColorFromHex(String hexColor) {
+    hexColor = hexColor.replaceAll('#', '');
+    if (hexColor.length == 6) {
+      hexColor = 'FF$hexColor';
+    }
+    return Color(int.parse(hexColor, radix: 16));
   }
 
   @override
@@ -115,6 +159,10 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
                               itemCount: _servicos.length,
                               itemBuilder: (context, index) {
                                 final servico = _servicos[index];
+                                final statusNome = servico['status'] is Map 
+                                    ? servico['status']['nome'] 
+                                    : servico['status'];
+                                
                                 return Card(
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
@@ -129,7 +177,20 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text('Data: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(servico['dtMovimento']))}'),
-                                        Text('Status: ${servico['status']}'),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 12,
+                                              height: 12,
+                                              margin: const EdgeInsets.only(right: 8),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(statusNome),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            Text('Status: $statusNome'),
+                                          ],
+                                        ),
                                         Text(
                                           'Valor: ${formatoMoeda.format(servico['valorTotal']?? 0.0)}',
                                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -173,6 +234,9 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
 
   void _mostrarDetalhesServico(dynamic servico) {
     final formatoMoeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    final statusNome = servico['status'] is Map 
+        ? servico['status']['nome'] 
+        : servico['status'];
     
     showModalBottomSheet(
       context: context,
@@ -195,7 +259,20 @@ class _RelatorioServicosScreenState extends State<RelatorioServicosScreen> {
               Text('Cliente: ${servico['cliente']['nome']}'),
               Text('Data de Movimento: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(servico['dtMovimento']))}'),
               Text('Data de Entrega: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(servico['dtEntrega']))}'),
-              Text('Status: ${servico['status']}'),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(statusNome),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Text('Status: $statusNome'),
+                ],
+              ),
               Text('Usuário: ${servico['usuario']['nome']}'),
               if (servico['observacao'] != null)
                 Text('Observação: ${servico['observacao']}'),

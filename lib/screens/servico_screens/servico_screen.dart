@@ -93,6 +93,10 @@ class _ServicoScreenState extends State<ServicoScreen> {
   }
 
   void _salvarServico() async {
+    if(_statusSelecionado == null){
+      final StatusService _statusService = StatusService();
+      _statusSelecionado = await _statusService.getStatusByOrdem(1) as StatusModel?;
+    }
     if (!_formKey.currentState!.validate() || _clienteSelecionado == null || _statusSelecionado == null) return;
 
     final novoServico = Servico(

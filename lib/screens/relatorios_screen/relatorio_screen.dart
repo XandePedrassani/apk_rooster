@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rooster/models/cliente_model.dart';
+import 'package:rooster/models/status_model.dart';
 import 'package:rooster/screens/relatorios_screen/relatorio_servicos_screen.dart';
 import 'package:rooster/screens/relatorios_screen/resultados_mensais_screen.dart';
 import 'package:rooster/services/cliente_service.dart';
+import 'package:rooster/services/status_service.dart';
 
 class RelatorioScreen extends StatefulWidget {
   const RelatorioScreen({Key? key}) : super(key: key);
@@ -14,30 +16,35 @@ class RelatorioScreen extends StatefulWidget {
 
 class _RelatorioScreenState extends State<RelatorioScreen> {
   final ClienteService _clienteService = ClienteService();
+  final StatusService _statusService = StatusService();
   
   String _tipoRelatorio = 'servicos';
   DateTime _dataInicio = DateTime.now().subtract(const Duration(days: 30));
   DateTime _dataFim = DateTime.now();
-  String _status = 'todos';
+  StatusModel? _statusSelecionado;
   Cliente? _clienteSelecionado;
   List<Cliente> _clientes = [];
+  List<StatusModel> _statusList = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _carregarClientes();
+    _carregarDados();
   }
 
-  Future<void> _carregarClientes() async {
+  Future<void> _carregarDados() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
       final clientes = await _clienteService.getClientes();
+      final statusList = await _statusService.getAllStatus();
+      
       setState(() {
         _clientes = clientes;
+        _statusList = statusList;
         _isLoading = false;
       });
     } catch (e) {
@@ -45,7 +52,7 @@ class _RelatorioScreenState extends State<RelatorioScreen> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar clientes: $e')),
+        SnackBar(content: Text('Erro ao carregar dados: $e')),
       );
     }
   }
@@ -77,7 +84,7 @@ class _RelatorioScreenState extends State<RelatorioScreen> {
           builder: (context) => RelatorioServicosScreen(
             dataInicio: _dataInicio,
             dataFim: _dataFim,
-            status: _status == 'todos' ? null : _status,
+            status: _statusSelecionado?.nome,
             cliente: _clienteSelecionado,
           ),
         ),
@@ -93,6 +100,35 @@ class _RelatorioScreenState extends State<RelatorioScreen> {
         ),
       );
     }
+  }
+
+  // Método para obter a cor do status
+  Color _getStatusColor(StatusModel status) {
+    if (status.cor != null) {
+      return _getColorFromHex(status.cor!);
+    }
+    
+    // Cores padrão para compatibilidade
+    switch (status.nome.toLowerCase()) {
+      case 'pendente':
+        return Colors.orange;
+      case 'pronto':
+        return Colors.green;
+      case 'entregue':
+        return Colors.blue;
+      case 'pendente pagamento':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+  
+  Color _getColorFromHex(String hexColor) {
+    hexColor = hexColor.replaceAll('#', '');
+    if (hexColor.length == 6) {
+      hexColor = 'FF$hexColor';
+    }
+    return Color(int.parse(hexColor, radix: 16));
   }
 
   @override
@@ -195,32 +231,40 @@ class _RelatorioScreenState extends State<RelatorioScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: _status,
+                            DropdownButtonFormField<StatusModel?>(
+                              value: _statusSelecionado,
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
                               ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'todos',
+                              items: [
+                                const DropdownMenuItem<StatusModel?>(
+                                  value: null,
                                   child: Text('Todos'),
                                 ),
-                                DropdownMenuItem(
-                                  value: 'pendente',
-                                  child: Text('Pendente'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'pronto',
-                                  child: Text('Pronto'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'entregue',
-                                  child: Text('Entregue'),
-                                ),
+                                ..._statusList.map((status) {
+                                  return DropdownMenuItem<StatusModel>(
+                                    value: status,
+                                    child: Row(
+                                      children: [
+                                        if (status.cor != null)
+                                          Container(
+                                            width: 16,
+                                            height: 16,
+                                            margin: const EdgeInsets.only(right: 8),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(status),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        Text(status.nome[0].toUpperCase() + status.nome.substring(1)),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
                               ],
                               onChanged: (value) {
                                 setState(() {
-                                  _status = value!;
+                                  _statusSelecionado = value;
                                 });
                               },
                             ),

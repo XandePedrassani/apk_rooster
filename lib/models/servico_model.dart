@@ -62,7 +62,7 @@ class Servico {
     'observacao': observacao,
     'cliente': cliente.toJson(),
     'usuario': usuario.toJson(),
-    'statusId': status.id,
+    'status': status.toJson(),
     'produtos': produtos.map((e) => e.toJson()).toList(),
   };
 }
